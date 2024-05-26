@@ -91,9 +91,9 @@ pub extern "C" fn load_image(mut ptr: *mut c_void, path: *const c_char, len: usi
 }
 
 #[no_mangle]
-pub extern "C" fn buffer(ptr: *mut c_void) -> Buffer{
+pub extern "C" fn buffer(mut ptr: *mut c_void) -> Buffer{
     let img = unsafe {
-        *Box::from_raw(ptr as *mut Ghe2d)
+        Box::from_raw(ptr as *mut Ghe2d)
     };
 
     let d = img.get_png_buffer(CompressionType::Fast, FilterType::Sub);
@@ -103,10 +103,25 @@ pub extern "C" fn buffer(ptr: *mut c_void) -> Buffer{
 
     std::mem::forget(d);
 
+    ptr = Box::into_raw(Box::new(img)) as *mut c_void;
+    _ = ptr;
+
     Buffer{
         data: raw_ptr,
         len
     }
+}
+
+#[no_mangle]
+pub extern "C" fn save(mut ptr: *mut c_void, path: *const c_char, len: usize) {
+    let img = unsafe {
+        Box::from_raw(ptr as *mut Ghe2d)
+    };
+
+    img.save(get_c_str(path, len).as_str()).unwrap();
+
+    ptr = Box::into_raw(Box::new(img)) as *mut c_void;
+    _ = ptr;
 }
 
 fn get_c_str(ptr: *const c_char, len: usize) -> String {
